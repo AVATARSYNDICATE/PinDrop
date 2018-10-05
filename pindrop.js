@@ -1,19 +1,18 @@
 /*
- * pindrop.js 1.0
+ * PinDrop plugin, pindrop.js v1.20181005
+ * 
  * A jQuery plugin for Avatar Pindrop location management.
- * [url to code repo]
- *
- * Homepage: http://locator.amber.run
+ * Download the latest release from: https://github.com/AVATARSYNDICATE/PinDrop
  *
  * Copyright 2018, AVATAR, LLC
- * Released under the MIT license. ???? https://mit-license.org/  What licensing can we use since this plugin uses libraries with MIT and other licenses???
- * http://www.apache.org/licenses/LICENSE-2.0.html ???
+ * Released under the MIT License: A short and simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
+ * 
  */
 
-// REQUIRED DEPENDENCY: jQuery version 2.2.4 or 3.x and greater
+// REQUIRED DEPENDENCY: jQuery version 2.2.4 or 3.x and greater; PinDrop will check if Handlebars.js and Font-Awesome 4.7.x is available. If not, PinDrop plugin will fetch and load them.
 
 //jquery plugin to get query string
-; (function ($) {
+(function ($) {
 	$.extend({
 		getQueryString: function (name) {
 			function parseParams() {
@@ -77,7 +76,6 @@ Array.prototype.clean = function (deleteValue) {
 		hbPresent: false, // should we check if 4.0.x or greater?
 		faVer4Present: false, // fa 4 uses font-awesome in css filename
 
-
 		// load handlebars here and init helpers and templates before init
 		loadDependencies: function () {
 
@@ -127,7 +125,6 @@ Array.prototype.clean = function (deleteValue) {
 				$('<style type="text/css" data-pindropstyle="optional"></style>').html(pl.settings.optionalCss).appendTo("head");
 			}
 
-
 		},
 
 		// Initialization logic
@@ -171,7 +168,6 @@ Array.prototype.clean = function (deleteValue) {
 			pl.requestData.radius2 = "75";
 			pl.getMapApiAssets();
 			
-
 		},
 
 		getMapApiAssets: function () {
@@ -228,9 +224,7 @@ Array.prototype.clean = function (deleteValue) {
 							pl.doPaging(1);
 						}
 						
-
 						pl.bindEvents(); // sets events after stuff is loaded, not before eh
-
 
 						if (requestData.address === pl.settings.defaultLocation) {
 							$(document).find(pl.settings.$resetSearchButton).hide();
@@ -270,7 +264,6 @@ Array.prototype.clean = function (deleteValue) {
 
 			pl.bindMarkerEvents();
 
-			
 		},
 
 		goToMarker: function (markerIndex, scrollup) {
@@ -282,7 +275,6 @@ Array.prototype.clean = function (deleteValue) {
 				scrollTop: $(pl.settings.$pluginContainer).offset().top - 75
 			}, 200);
 		},
-
 
 		drawMarkers: function (markerArray) {
 			var pl = this;
@@ -574,7 +566,6 @@ Array.prototype.clean = function (deleteValue) {
 			}
 		},
 
-
 		doAlert: function (type, label, msg, use_template) {// use_template: true or false. uses template from settings
 			var pl = this;
 			if (use_template === undefined) { use_template = true; }
@@ -656,8 +647,6 @@ Array.prototype.clean = function (deleteValue) {
 				pl.doPaging($(this).data('paging'));
 				$(this).parents('li').addClass('active');
 			});
-			
-
 
 		},
 
@@ -778,6 +767,5 @@ Array.prototype.clean = function (deleteValue) {
 		optionalCss: '.pd-locationSearched {text-transform: uppercase;} .pd-resetSearch {color:#2D6073;} .pd-item { font-family: inherit; } .pd-item h3 { font-family: inherit; text-transform: uppercase; border-bottom: 1px solid #2D6073; padding-bottom: 10px; } .pd-item h3 small {text-transform: none;} .pd-item--icons { border-right: 1px solid #2D6073; } .pd-item--link { display: block; font-size: 20px; text-align: center; width: 100%; color: #2D6073; } .pd-item--marker {padding-top: 3px;} .pd-item a { color: #2D6073; } .pd-item big { line-height: 1.2; font-family: inherit; color: #000; text-decoration: none; } .pd-item--address { text-transform: uppercase; } .pd-item--address small { text-transform: capitalize; font-style: italic; } @media (max-width: 767px) { .pd-item--icons { padding: 0; } } @media (max-width: 550px) { .pd-item--icons { border: 0; } } @media (max-width: 375px) { .pd-item h3 { font-size: 1.25rem; } }'
 
 	};
-
 
 })(jQuery, window, document);

@@ -27,8 +27,8 @@ may need to style the plugin's search form and location listing.
 	<script src="../scripts/pindrop.js"></script>
 	<script>
 		var pindropSettings = {
-			mapApiKey: 'AIzaSyAk57Y9sVKXDXXccIHoDXZh75us-x_A8QU',
-			pindropKey: 'a7af0bbc-6310-4024-9791-f33ba28e1fc7',
+			mapApiKey: 'GtPLzaSyAk57Y9sVKXDXXccIHoDXZh7ggg5us-x_A8QU',
+			pindropKey: 'Fa7af0fbbac-6310-40K24-9y791-f3E3ba28e1fc7!',
 		}
 		var pindrop = $('#pdPlugin').pindrop(pindropSettings);
 	</script>

@@ -1,0 +1,73 @@
+﻿
+
+### Step One: add HTML to web page ###
+*Copy and paste the below HTML into your web page template where PinDrop will be visible.
+*Note: The HTML is Bootstrap 3 and 4 compatible. It is not a dependency, however, websites not using Bootstrap
+may need to style the plugin's search form and location listing.
+
+
+<!-- start pindrop -->
+<div id="pdPlugin">
+	<div id="pdMap"></div>
+	<div id="pdList"></div>
+	<div id="pdPagination"></div>
+</div>
+<!-- end pindrop -->
+
+
+
+
+### Step Two: add Javascript to web page ###
+*Copy and paste the below Javascript into the bottom of your web page template, above the closing </body> element.
+* Add pindrop.js into your scripts directory. 
+* Directly linking to pindrop.js from our repository or website is not permitted.
+
+
+<!-- start pindrop js -->
+	<script src="../scripts/pindrop.js"></script>
+	<script>
+		var pindropSettings = {
+			mapApiKey: 'AIzaSyAk57Y9sVKXDXXccIHoDXZh75us-x_A8QU',
+			pindropKey: 'a7af0bbc-6310-4024-9791-f33ba28e1fc7',
+		}
+		var pindrop = $('#pdPlugin').pindrop(pindropSettings);
+	</script>
+<!-- end pindrop js -->
+
+
+### Javascript Tips ###
+*jQuery is required to run this plugin. Recommended is version 3.x or greater, or version 2.2.4.
+*The path to pindrop.js may need to be modified to match your website directory structure.
+*The inline Javascript to initialize PinDrop may need to be wrapped inside of a jQuery ready statement.
+
+### Optional Settings ### 
+*You can assign optional settings to the `pindropSettings` object:
+
+defaultLocation: '43604', // set a default zip code for searches
+startLat: 41.6487933, // set a default starting latitude
+startLng: -83.5503455, // set a default starting longitude
+usePluginCss: true, // set to `false` if you will not use the plugin's location list styles
+mapContainerHeightpx: '365px', // adjust to meet your needs
+searchform_Label: "Address", 
+searchform_Placeholder: "Search by address&hellip;", // this allows special chars
+searchform_SearchBtn: "Search",
+searchform_GeoBtn: "Find Near Me",
+enablePaging: true, // set to false to disable and hide pagination
+resultsPerPage: 30,  // set number of locations per page. Only works with enablePaging
+
+
+### Advanced Settings ### 
+Advanced settings can be set inside of the `pindropSettings` object. However, the defaults should meet most needs.
+
+mapOptions: { // The `mapOptions` object can modify the zoom levels
+	maxZoom: 16,
+	zoomOnMarkerClick: 15
+},
+
+enableInfoWindows: true, // disable info windows on the Google Map
+loadHandlebars: true, // Can be set to false if your website already loads Handlebars.
+
+
+### Additional Information ###
+*This plugin uses Handlebarsjs. If it does not detect Handlebars is present, it will load it.
+*This plugin uses Font Awesome version 4.7.x for icons. If it does not detect that the full Font Awesome CSS library link is present, it will load it.

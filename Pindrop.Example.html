@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<title>A PINDROP Demo | PINDROP</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+</head>
+<body>
+
+	<h1 class="py-4>Example HTML and Javascript Code Placement</h1>
+
+	<main>
+		<div class="container">
+			<div class="row my-5">
+				@* start pin drop template *@
+				<div id="pdPlugin">
+					<div id="pdMap"></div>
+					<div id="pdList"></div>
+				</div>
+				@* end pindrop template *@
+			</div>
+		</div>
+	</main>
+
+	<footer class="small py-4">
+		&copy; 2018 PINDROP &amp; AVATAR, LLC. All rights reserved.
+	</footer>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.bundle.min.js"></script>
+
+	<script src="[PATH-TO-pindrop.js]/pindrop.js"></script>
+	<script>
+		var pindropSettings = {
+			mapApiKey: 'YOUR-MAP-KEY-HERE-jdbAAAVVVAAATTTAAARRRftw',
+			pindropKey: 'YOUR-PINDROP-KEY-HERE-jdbAAAVVVAAATTTAAARRRftw',
+			enablePaging: true
+		};
+		var pindrop = $('#pdPlugin').pindrop(pindropSettings);
+	</script>
+
+</body>
+</html>

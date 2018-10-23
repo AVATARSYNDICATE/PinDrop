@@ -1,5 +1,5 @@
 /*
- * PinDrop plugin, pindrop.js v1.20181005
+ * PinDrop plugin, pindrop.js v1.20181023
  * 
  * A jQuery plugin for Avatar Pindrop location management.
  * Download the latest release from: https://github.com/AVATARSYNDICATE/PinDrop
@@ -72,9 +72,12 @@ Array.prototype.clean = function (deleteValue) {
 		templates: {},
 		requestData: {},
 		eventsBoundOnce: false, // some events should only bind once
-		//isGeoLocated: false,
+		isGeoLocated: false,
 		hbPresent: false, // should we check if 4.0.x or greater?
 		faVer4Present: false, // fa 4 uses font-awesome in css filename
+		currentPaging: 0, // contains the current page when paging is enabled
+		totalItems: '',  // contains total items when paging is enabled
+		totalPages: 1,  // contains total pages when paging is enabled
 
 		// load handlebars here and init helpers and templates before init
 		loadDependencies: function () {
@@ -132,7 +135,7 @@ Array.prototype.clean = function (deleteValue) {
 
 			var pl = this;
 
-			pl.buildCache(); // is this needed?
+			pl.buildCache();
 
 			pl.setTemplates(); // sets labels for templates and puts into dom
 
@@ -159,13 +162,44 @@ Array.prototype.clean = function (deleteValue) {
 				}
 			}
 
+			if (pl.settings.enablePaging) {
+				//test for negative page query
+				pl.requestData.pageSize = pl.settings.resultsPerPage;
+				
+				if ($.getQueryString('page')) {
+					if ($.getQueryString('page') > 0) {
+						pl.requestData.pageNumber = $.getQueryString('page');
+					} else {
+						pl.requestData.pageNumber = 1;
+					}
+					pl.currentPaging = pl.requestData.pageNumber;
+				} else {
+					// paging is enabled but no page in query
+					pl.requestData.pageNumber = 1;
+					pl.currentPaging = 1;
+				}
+			} else {
+				// paging is Not enabled
+				pl.requestData.pageSize = 0;
+				pl.requestData.pageNumber = 0;
+				pl.currentPaging = 0;
+			}
+
 			if ($.getQueryString('location')) {
 				pl.requestData.address = $.getQueryString('location');
 				$(pl.settings.$searchInputEle).val(pl.requestData.address);
 			}
 
-			pl.requestData.radius = "25";
-			pl.requestData.radius2 = "75";
+			// set radius lookups dynamically and check if extended radius2 is enabled
+			if (pl.settings.defaultRadiusLookup < 1) {
+				pl.requestData.radius = "25";
+			} else {
+				pl.requestData.radius = pl.settings.defaultRadiusLookup;
+			}		
+			if (pl.settings.enableExtendedRadiusOnEmpty) {
+				pl.requestData.radius2 = pl.settings.extendedRadiusLookup;
+			}
+			
 			pl.getMapApiAssets();
 			
 		},
@@ -177,7 +211,7 @@ Array.prototype.clean = function (deleteValue) {
 				.done(function () {
 					pl.drawMap();
 					pl.setIndicator('on');
-					$(pl.settings.$mapElement[0]).hide(0); // hide until ready
+					$(pl.settings.$mapElement[0]).hide(0);
 				})
 				.fail(function () {
 					pl.doAlert("warning", "Warning", pl.settings.messages.missingApiKey, false);
@@ -209,7 +243,6 @@ Array.prototype.clean = function (deleteValue) {
 
 		getLocations: function (requestData) {
 			var pl = this;
-
 			$.getJSON(pl.settings.serviceUrl, requestData)
 				.done(function (results) {
 					if (results.length > 0) {
@@ -219,13 +252,7 @@ Array.prototype.clean = function (deleteValue) {
 						pl.locations = results;
 						pl.drawMarkers(pl.locations);
 						pl.drawLocationList();
-
-						if (pl.settings.enablePaging) {
-							pl.doPaging(1);
-						}
-						
-						pl.bindEvents(); // sets events after stuff is loaded, not before eh
-
+						pl.bindEvents();
 						if (requestData.address === pl.settings.defaultLocation) {
 							$(document).find(pl.settings.$resetSearchButton).hide();
 						} else {
@@ -254,15 +281,20 @@ Array.prototype.clean = function (deleteValue) {
 		drawLocationList: function () {
 
 			var pl = this;
+			
 			var locationSearched = pl.settings.defaultLocation;
+
 			if ($(pl.settings.$searchInputEle).val()) {
 				locationSearched = $(pl.settings.$searchInputEle).val();
 			}
+
 			$(pl.settings.$locationListElement).html(pl.settings.templates.locationItem(pl.locations));
 
 			$(document).find(pl.settings.$locationListElement).find(pl.settings.$locSearchedEle).text(locationSearched);
 
 			pl.bindMarkerEvents();
+
+			pl.doPaging();
 
 		},
 
@@ -340,9 +372,21 @@ Array.prototype.clean = function (deleteValue) {
 			var pl = this;
 			pl.setIndicator('on');
 			pl.requestData.address = pl.settings.defaultLocation;
+
+			if (pl.settings.enablePaging) {
+				pl.requestData.pageNumber = 1;
+				pl.currentPaging = pl.requestData.pageNumber;
+				window.history.replaceState({}, null, '?location=' + encodeURI(pl.settings.defaultLocation) + '&page=1');
+			} else {
+				pl.requestData.pageNumber = 0;
+				window.history.replaceState({}, null, '?location=' + encodeURI(pl.settings.defaultLocation));
+			}
+
 			pl.getLocations(pl.requestData);
-			window.history.replaceState({}, null, '?location=' + encodeURI(pl.settings.defaultLocation));
+
 			$(document).find(pl.settings.$searchInputEle).val(pl.settings.defaultLocation);
+
+			//pl.doPaging();
 		},
 
 		doSearchInput: function (event) {
@@ -358,12 +402,55 @@ Array.prototype.clean = function (deleteValue) {
 			}
 			pl.setIndicator('on');
 			pl.requestData.address = value;
-			window.history.replaceState({}, null, '?location=' + encodeURI(value));
+			
+			if (pl.settings.enablePaging) {
+				pl.requestData.pageNumber = 1;
+				pl.currentPaging = pl.requestData.pageNumber;
+				window.history.replaceState({}, null, '?location=' + encodeURI(value) + '&page=1');
+			} else {
+				pl.requestData.pageNumber = 0;
+				window.history.replaceState({}, null, '?location=' + encodeURI(value));
+			}
+			
 			pl.getLocations(pl.requestData);
+			pl.doPaging();
+		},
+
+		doSearchPaging: function (event) {
+			var pl = this;
+			var value = pl.settings.defaultLocation;
+
+			if (event) {
+				event.preventDefault();
+			}
+			// use default location or user inputted
+			if ($(pl.settings.$searchInputEle).val().length > 0) {
+				value = $(pl.settings.$searchInputEle).val();
+			}
+
+			if (value === '' || value === null || !value) {
+				pl.doAlert("warning", "Warning", "Please enter an address.");
+				return;
+			}
+
+			pl.setIndicator('on');
+
+			// set requestData with location and paging info
+			pl.requestData.address = value;
+			pl.requestData.pageNumber = pl.currentPaging;
+
+			window.history.replaceState({}, null, '?location=' + encodeURI(value) + '&page=' + pl.currentPaging);
+
+			// make request
+			pl.getLocations(pl.requestData);
+
+			$('html, body').animate({
+				scrollTop: $(pl.settings.$mapElement).offset().top - 175
+			}, 200);
 		},
 
 		geolocationError: function (error, thisplugin) {
-			console.log(error); // can do stuff with this error to present specific notices to user
+			//console.log(error); // can do stuff with this error to present specific notices to user
 			var errCode = "";
 			if (error.code === 1) {
 				errCode = "Permission Denied";
@@ -383,18 +470,24 @@ Array.prototype.clean = function (deleteValue) {
 		},
 
 		geolocationSuccess: function (position, thisplugin) {
-			console.log(position);
 			var pl = thisplugin;
 
 			var lat = position.coords.latitude,
 				lng = position.coords.longitude,
 				point = new google.maps.LatLng(lat, lng);
-
+			var crossHair = {
+				path: "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z",
+				fillColor: '#9B0303',
+				fillOpacity: 0.75,
+				scale: .95,
+				strokeWeight: .75,
+				strokeColor: '#F12012'
+			};
 			var myMarker = new google.maps.Marker({
 				position: point,
 				map: pl.map,
-				title: "My position",
-				icon: '/images/person-marker.png'
+				title: "My Location: " + point,
+				icon: crossHair
 			});
 
 			new google.maps.Geocoder().geocode({ 'latLng': point }, function (results, status) {
@@ -413,7 +506,7 @@ Array.prototype.clean = function (deleteValue) {
 
 			var pl = this;
 
-			// do pos via promise to do something later....
+			// do positon via promise....
 			if (navigator.geolocation) {
 				var getPosition = function (options) {
 					return new Promise(function (resolve, reject) {
@@ -422,16 +515,16 @@ Array.prototype.clean = function (deleteValue) {
 				};
 
 				getPosition().then(function (position) {
-					pl.settings.isGeoLocated = true;
+					pl.isGeoLocated = true;
 					pl.geolocationSuccess(position, pl);
 				}).catch(function (error) {
-					pl.settings.isGeoLocated = false;
+					pl.isGeoLocated = false;
 					pl.geolocationError(error, pl);
 					$(pl.settings.$findNearMeButton).remove();
 					pl.setIndicator('off');
 				});
 			} else {
-				pl.settings.isGeoLocated = false;
+				pl.isGeoLocated = false;
 				pl.doAlert("warning", "Warning", pl.settings.messages.geoLookupNotAllowed);
 				$(pl.settings.$findNearMeButton).remove();
 				pl.setIndicator('off');
@@ -442,7 +535,6 @@ Array.prototype.clean = function (deleteValue) {
 		checkHbDependency: function () {
 			var pl = this;
 			if (typeof (Handlebars) === 'undefined') {
-				//alert('This plugin requires Handlebars.js. Please include it and try again.');
 				pl.doAlert("warning", "Warning", pl.settings.messages.missingHandlebarsJs, false);
 				pl.setIndicator('off');
 				$(pl.settings.$searchForm).remove();
@@ -505,48 +597,88 @@ Array.prototype.clean = function (deleteValue) {
 
 		},
 
-		// pagination inspired by: https://www.script-tutorials.com/demos/35/index.html
-		doPaging: function (page) {
+
+		doPaging: function () {
 			var pl = this;
-			//console.log(pl.settings.resultsPerPage);
-			$(document).find(pl.settings.locationListItem).addClass('d-none');
 
-			$(document).find(pl.settings.locationListItem).slice((page - 1) * pl.settings.resultsPerPage,
-				((page - 1) * pl.settings.resultsPerPage) + pl.settings.resultsPerPage).each(function () {
+			pl.totalItems = $(document).find(pl.settings.$locationListElement).find(pl.settings.$locationListItem).first().attr('data-total');
+			pl.totalPages = Math.ceil(pl.totalItems / pl.settings.resultsPerPage);
 
-					$(this).removeClass('d-none');
+			if (pl.totalItems) {
+				$(document).find(pl.settings.$locationListElement).find(pl.settings.$locSearchedEle).parents('h2').prepend('<span>' + pl.totalItems + ' </span>');
+			}
 
-					if (pl.settings.pagingStarted === true) {
-						$('html, body').animate({
-							scrollTop: $(pl.settings.$mapElement).offset().top - 175
-						}, 200);
+			// pagination buttons will be presented in groups of 10 pages as long as the records and pagination support more than 10 pages.
+			if (pl.settings.enablePaging && pl.totalPages > 1) {
+
+				var preActive = [];
+				var postActive = [];
+				var paging = "";
+
+				// push all pages into arrays
+				for (var i = 1; i <= pl.totalPages; i++) {
+
+					if (i < pl.currentPaging && i > parseInt(pl.currentPaging) - 5) {
+						preActive.push(i);
 					}
-			});
+					// contains current page
+					if (i >= pl.currentPaging && i < parseInt(pl.currentPaging) + 6) {
+						postActive.push(i);
+					}
 
-			if (pl.settings.pagingStarted !== true) {
-				
-				if ($(document).find(pl.settings.locationListItem) !== null && pl.settings.resultsPerPage !== null && pl.settings.resultsPerPage > 0) {
-					pl.settings.numPages = Math.ceil($(document).find(pl.settings.locationListItem).length / pl.settings.resultsPerPage);
+					}
+
+				$(document).find(pl.settings.$locationListElement).find(pl.settings.pagingPage).html('Showing page ' + pl.currentPaging + ' of ' + pl.totalPages);
+
+				paging += '<ul class="pagination justify-content-end">';
+
+				if (parseInt(pl.currentPaging) !== 1) {
+					paging += '<li class="page-item"><button aria-label="go to page ' + (parseInt(pl.currentPaging) - 1) + '" class="page-link pd-pager" data-paging="' + (parseInt(pl.currentPaging) - 1) + '">&laquo; Previous</button></li>';
 				}
-				pl.setPagination(pl.settings.pagingControls, page, pl.settings.numPages);
+
+				// if not enough 'next' pages to have 10 total, add some behind current
+				if (postActive.length < 6) {
+					for (var k = 1; k <= pl.totalPages; k++) {
+						if (k < pl.currentPaging - preActive.length && k >= preActive[0] + postActive.length - 6) {
+							paging += '<li class="page-item"><button aria-label="go to page ' + k + '" class="page-link pd-pager" data-paging="' + k + '">' + k + '</button></li>';
+						}
+					}
+
+				}
+				// pages before current page
+				$.each(preActive, function (i, pre) {
+					paging += '<li class="page-item"><button aria-label="go to page ' + pre + '" class="page-link pd-pager" data-paging="' + pre + '">' + pre + '</button></li>';
+				});
+
+				// current page and pages ahead of it
+				$.each(postActive, function (i, post) {
+					if (parseInt(post) === parseInt(pl.currentPaging)) {
+						paging += '<li class="page-item active"><button aria-label="go to page ' + post + '" class="page-link pd-pager" data-paging="' + post + '">' + post + '</button></li>';
+					} else {
+						paging += '<li class="page-item"><button aria-label="go to page ' + post + '" class="page-link pd-pager" data-paging="' + post + '">' + post + '</button></li>';
+					}
+
+				});
+				// if not enough 'previous' pages to have 10 total, add some ahead of current
+				if (preActive.length < 4) {
+					for (var j = 1; j <= pl.totalPages; j++) {
+						if (j > postActive.length + preActive.length && j < ((postActive[5] + postActive.length) - preActive.length) - 1) {
+							paging += '<li class="page-item"><button aria-label="go to page ' + j + '" class="page-link pd-pager" data-paging="' + j + '">' + j + '</button></li>';
+						}
+
+					}
+				}
+
+				if (parseInt(pl.currentPaging) !== pl.totalPages) {
+					paging += '<li class="page-item"><button aria-label="go to page ' + (parseInt(pl.currentPaging) + 1) + '" class="page-link pd-pager" data-paging="' + (parseInt(pl.currentPaging) + 1) + '">Next &raquo;</button></li>';
+				}
+
+				paging += '</ul>';
+
+				$(document).find(pl.settings.$locationListElement).find(pl.settings.pagingControls).html(paging);
+
 			}
 
-			pl.settings.pagingStarted = true;
-		},
-
-		setPagination: function (container, currentPage, numPages) {
-			var pl = this,
-			paging = '<ul class="pagination justify-content-end">',
-				ifActive = ' active';
-			for (var i = 1; i <= numPages; i++) {
-				if (i !== currentPage) {
-					ifActive = '';
-				}
-				paging += '<li class="page-item'+ifActive+'"><button aria-label="go to page ' + i + '" class="page-link pd-pager" data-paging="' + i + '">' + i + '</button></li>';
-			}
-			paging += '</ul>';
-
-			$(container).html(paging);
 		},
 
 		setIndicator: function (state) {
@@ -642,10 +774,10 @@ Array.prototype.clean = function (deleteValue) {
 				pl.removeAlerts();
 			});
 
-			$(document).find('.pd-pager').on('click', function () {
-				$(document).find('.pd-pager').parents('li').removeClass('active');
-				pl.doPaging($(this).data('paging'));
-				$(this).parents('li').addClass('active');
+			$(document).find(pl.settings.pagingBtn).on('click', function (event) {
+				pl.currentPaging = $(this).data('paging');
+				pl.doSearchPaging(event);
+				pl.removeAlerts();
 			});
 
 		},
@@ -688,15 +820,16 @@ Array.prototype.clean = function (deleteValue) {
 	};
 
 	$.fn[pluginName].defaults = {
-		// START Required //
+		// START Required Settings //
 		mapApiUrl: 'https://maps.googleapis.com/maps/api/js?key=',
 		serviceUrl: 'https://locator.avatarsyn.com/api/locationweb/GetLocationsByAddress',
 		pindropKey: '',
 		mapApiKey: '',
-		// END Required //
+		// END Required Settings //
 
 		// START Optional //
 		defaultLocation: '43604',
+		defaultRadiusLookup: '25', // in miles
 		startLat: 41.6487933,
 		startLng: -83.5503455,
 		usePluginCss: true,
@@ -705,8 +838,8 @@ Array.prototype.clean = function (deleteValue) {
 		searchform_Placeholder: "Search by address&hellip;",
 		searchform_SearchBtn: "Search",
 		searchform_GeoBtn: "Find Near Me",
-		enablePaging: true,
-		resultsPerPage: 30,
+		enablePaging: false,
+		resultsPerPage: 10,
 		// END Optional //
 
 		// START Advanced Settings //
@@ -716,6 +849,8 @@ Array.prototype.clean = function (deleteValue) {
 		},
 		enableInfoWindows: true,
 		loadHandlebars: true,
+		enableExtendedRadiusOnEmpty: false,
+		extendedRadiusLookup: '75', // in miles
 		// END Advanced Settings //
 
 		// START DO NOT EDIT //
@@ -728,18 +863,18 @@ Array.prototype.clean = function (deleteValue) {
 		$searchInputEle: '#pdSearchThis',
 		$findNearMeButton: '#pdSearchNear',
 		$doSearchButton: '#pdSubmit',
-		pagingControls: '#pdPagination',
-		spinnerEle: '#pdLoading', // todo: can I set with HBs?
-		locationListItem: '.pd-item',
+		pagingRow: '.pd-pagination',
+		pagingPage: '.pd-pagination--page',
+		pagingControls: '.pd-pagination--paging',
+		pagingBtn: '.pd-pager',
+		spinnerEle: '#pdLoading',
+		$locationListItem: '.pd-item',
 		goToMarkerButton: '.pd-item--marker',
 		alertId: 'pdMessage',
 		$resetSearchButton: '.pd-resetSearch',
-		$locSearchedEle: '.pd-locationSearched', // todo: can I set with HBs?
-		numPages: 0,
-		pagingStarted: false,
-		isGeoLocated: false,
+		$locSearchedEle: '.pd-locationSearched',
 		templates: {
-			locationItem: '{{#if this}}<h2 class="text-left my-5">Location Results for [ <small class="pd-locationSearched"></small> ] <button class="btn btn-link btn-sm pd-resetSearch" type="button" aria-label="reset to default results"><span class="fa fa-times"></span></button></h2>{{#each this}}<div tabindex="0" class="row pd-item mb-5"><div class="col-1 pd-item--icons text-center"><button class="btn btn-link pd-item--link pd-item--marker" data-marker-index="{{@index}}" data-markerid="{{id}}"><span class="fa fa-map-marker" aria-hidden="true"></span></button>{{#if phone}}<a href="tel:{{phone}}" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-phone" aria-hidden="true"></span></a>{{/if}}{{#if website}}<a href="{{checkSetHttp website}}" aria-label="Open {{name}} website" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-globe" aria-hidden="true"></span></a>{{/if}}<a href="https://maps.google.com?daddr={{addressString}}" aria-label="Open Google directions" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-car" aria-hidden="true"></span></a></div><div class="col-11"><h3>{{{name}}} <small>{{city}}, {{#if stateAbbr}}{{stateAbbr}}{{else}}{{state}}{{/if}}</small></h3>{{#if phone}}<p>{{phone}}</p>{{/if}}{{#if website}}<p><a href="{{checkSetHttp website}}" target="_blank">{{website}}</a></p>{{/if}}<p class="pd-item--address">{{address}}<br/>{{city}}, {{#if stateAbbr}}{{stateAbbr}}{{else}}{{state}}{{/if}} {{zip}}<br/><small>{{doDistance geo.distance 2}} miles</small></p>{{#if description}}<p>{{description}}</p>{{/if}}</div></div>{{/each}}{{/if}}',
+			locationItem: '{{#if this}}<h2 class="text-left mt-5">Location Results for [ <small class="pd-locationSearched"></small> ] <button class="btn btn-link btn-sm pd-resetSearch" type="button" aria-label="reset to default results"><span class="fa fa-times"></span></button></h2><div class="pd-pagination row"><div class="pd-pagination--page col-12 col-sm-3">showing</div><div class="pd-pagination--paging col-12 col-sm-9 text-right">page</div></div><div class="my-5">{{#each this}}<div data-total="{{totalRecords}}" tabindex="0" class="row pd-item mb-5"><div class="col-1 pd-item--icons text-center"><button class="btn btn-link pd-item--link pd-item--marker" data-marker-index="{{@index}}" data-markerid="{{id}}"><span class="fa fa-map-marker" aria-hidden="true"></span></button>{{#if phone}}<a href="tel:{{phone}}" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-phone" aria-hidden="true"></span></a>{{/if}}{{#if website}}<a href="{{checkSetHttp website}}" aria-label="Open {{name}} website" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-globe" aria-hidden="true"></span></a>{{/if}}<a href="https://maps.google.com?daddr={{addressString}}" aria-label="Open Google directions" class="btn btn-link pd-item--link" target="_blank"><span class="fa fa-car" aria-hidden="true"></span></a></div><div class="col-11"><h3>{{{name}}} <small>{{ city }}, {{#if stateAbbr}}{{ stateAbbr }}{{ else}}{{ state }}{{/if}}</small></h3>{{#if phone}}<p>{{ phone }}</p>{{/if}}{{#if website}}<p><a href="{{checkSetHttp website}}" target="_blank">{{ website }}</a></p>{{/if}}<p class="pd-item--address">{{ address }}<br />{{ city }}, {{#if stateAbbr}}{{ stateAbbr }}{{ else}}{{ state }}{{/if}} {{ zip }}<br /><small>{{ doDistance geo.distance 2}} miles</small></p>{{#if description}}<p>{{ description }}</p>{{/if}}</div></div>{{/each}}</div><div class="pd-pagination row"><div class="pd-pagination--page col-12 col-sm-3">showing</div><div class="pd-pagination--paging col-12 col-sm-9 text-right">page</div></div>{{/if}}',
 
 			infoWindow: '<div class="pdInfoWindow" style="min-width: 300px !important;" tabindex="0" id="{{id}}"><p class="pdInfoWindow--name"><big><strong>{{{name}}}</strong></big></p>{{#if phone}}<p class="pdInfoWindow--phone clearfix"><a href="tel:{{numericOnly phone}}" class="pull-left fa fa-phone" target="_blank" aria-label="Start telephone call"></a><a href="tel:{{numericOnly phone}}" target="_blank" class="pull-right">{{phone}}</a></p>{{/if}}{{#if website}}<p class="pdInfoWindow--web clearfix"><a href="{{checkSetHttp website}}" class="pull-left fa fa-globe" target="_blank" aria-label="Go to thier website"></a><a href="{{checkSetHttp website}}" target="_blank" class="pull-right">{{website}}</a></p>{{/if}}<p class="pdInfoWindow--address clearfix"><a class="fa fa-car pull-left" aria-label="Open Google directions" target="_blank" href="https://maps.google.com?daddr={{addressString}}"></a><a class="pull-right" target="_blank" href="https://maps.google.com?daddr={{addressString}}">{{address}}<br/>{{city}},{{#if stateAbbr}}{{stateAbbr}}{{else}}{{state}}{{/if}} {{zip}}</a></p></div>',
 

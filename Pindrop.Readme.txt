@@ -4,7 +4,7 @@
  * A jQuery plugin for Avatar Pindrop location management.
  * Download the latest release from: https://github.com/AVATARSYNDICATE/PinDrop
  *
- * Copyright 2018, AVATAR, LLC
+ * Copyright 2019, AVATAR, LLC
  * Released under the MIT License: A short and simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
  * 
  */
@@ -12,7 +12,7 @@
 
  Below is information needed to install PinDrop into your web page using Javascript. An example HTML file is provided in the package: "Pindrop.Example.html".
  There few requirements:
-	 1) jQuery 2.2.4+
+	 1) jQuery 3.0 or newer
 	 2) 4 lines of HTML code.
 	 3) The PinDrop JS file (stored on your webserver).
 	 4) A Google Maps API Key.
@@ -23,7 +23,7 @@ To obtain an account, please visit: [ TBD ]
 
 ### Javascript Tips ###
 
-	*jQuery is required to run this plugin. Recommended is version 3.x or greater, or version 2.2.4.
+	*jQuery is required to run this plugin. Recommended is version 3.x or greater.
 	*The path to pindrop.js may need to be modified to match your website directory structure.
 	*The inline Javascript to initialize PinDrop may need to be wrapped inside of a jQuery `Ready` statement.
 

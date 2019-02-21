@@ -1,15 +1,17 @@
 /*
- * PinDrop plugin, pindrop.js v1.20181023
+ * PinDrop plugin, pindrop.js v1.20190221
  * 
  * A jQuery plugin for Avatar Pindrop location management.
  * Download the latest release from: https://github.com/AVATARSYNDICATE/PinDrop
  *
- * Copyright 2018, AVATAR, LLC
+ * Copyright 2019, AVATAR, LLC
  * Released under the MIT License: A short and simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
  * 
  */
 
-// REQUIRED DEPENDENCY: jQuery version 2.2.4 or 3.x and greater; PinDrop will check if Handlebars.js and Font-Awesome 4.7.x is available. If not, PinDrop plugin will fetch and load them.
+// REQUIRED DEPENDENCIES: 
+// jQuery version 3.0 or newer; 
+// PinDrop will check if Handlebars.js and Font-Awesome 4.7.x is available. If not, PinDrop plugin will fetch and load them from a CDN provider.
 
 //jquery plugin to get query string
 (function ($) {
